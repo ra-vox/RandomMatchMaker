@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -15,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +29,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    randomMatchMaker()
+                    RandomMatchMakerApp()
                 }
             }
         }
@@ -43,23 +41,26 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 @Preview
-fun randomMatchMaker() {
+fun RandomMatchMakerApp() {
 
     var state: Int by remember {
         mutableStateOf(0)
     }
+
+
     var listOfContestants by remember {
-        mutableStateOf(listOf<String>("Apple", "Banana", "Coconut", "Date", "Pineapple", "Pen", "Rose", "Sunshine", "Darkness"))
-    }
-    var randomListOfContestants by remember {
-        mutableStateOf(listOfContestants)
+        mutableStateOf(listOf("Pineapple","Banana","Coconut","Date","Apple","Pen","Rose","Sunshine","Darkness"))
     }
 
-    var matchListofGameSets by remember {
-        mutableStateOf(listOf<String>("-","-","-","-","-" ))
+
+    var randomListOfContestants by remember {
+        mutableStateOf(listOfContestants)
+
     }
+
     Scaffold(
         topBar = {
+
             Row(modifier = Modifier
                 .background(color = MaterialTheme.colors.secondary)
                 .fillMaxWidth(),
@@ -68,6 +69,7 @@ fun randomMatchMaker() {
                 Text(text = "Table Tennis Tournament Tool",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier.padding(24.dp))
             }
         }
@@ -92,10 +94,11 @@ fun randomMatchMaker() {
                     )
 
                     ShowContestant(randomListOfContestants)
-                    Row() {
+                    Row {
                         Button(
                             modifier = Modifier.padding(4.dp),
-                            onClick = { randomListOfContestants = makeMatches(listOfContestants) }) {
+                            onClick = {randomListOfContestants = listOfContestants.shuffled().toMutableList()
+                                }) {
                             Text(text = "Random")
                         }
                         Button(
@@ -116,25 +119,23 @@ fun randomMatchMaker() {
                     }
                 }
                 1 -> {
-                    var list: List<String> = emptyList()
-                    editContestants(
+                    EditContestants(
                         value = listOfContestants.toString().removeSurrounding("[", "]"),
-                        onValueChange = {
-                            listOfContestants = it.split(", ").map { it.trim() }
+                        onValueChange = { showContestantList ->
+                            listOfContestants = showContestantList.split(", ").map { it.trim() } as MutableList<String>
                             randomListOfContestants = listOfContestants
                         })
-                    goBackButton(value = state, onClick = { state = 0 } )
+                    GoBackButton { state = 0 }
                 } // EDIT
                 2 -> {
                     StartKOSystem(
-                        value = randomListOfContestants,
-                        onValueChange = { state = 0 }
+                        value = randomListOfContestants
                     ) // start KO System Game
-                    goBackButton(value = state, onClick = { state = 0 } )
+                    GoBackButton { state = 0 }
                 }
                 3 -> {
-                    playMatch(firstPlayer = listOfContestants[0], secondPlayer = listOfContestants[2],)
-                    goBackButton(value = state, onClick = { state = 0 } )
+                    PlayMatch(firstPlayer = listOfContestants[0], secondPlayer = listOfContestants[2])
+                    GoBackButton { state = 0 }
                 }
                 4 -> TODO()
                 // Grouped Events Switch between different Groups show current games in front
@@ -145,48 +146,164 @@ fun randomMatchMaker() {
 }
 
 
-
-
 @Composable
-fun playMatch(firstPlayer: String, secondPlayer: String) {
-    var playedMatch = TableTennisMatch(firstPlayer, secondPlayer)
-    Row() {
+fun PlayMatch(firstPlayer: String, secondPlayer: String) {
 
-        Spacer(modifier = Modifier.weight(1f))
+    //todo: write logic to transition from gameset to gameset, needs winning condition.
+    val currentGame by remember {
+        mutableStateOf(2) }
+
+    val game = TableTennisMatch(firstPlayer, secondPlayer)
+
+    val gamePoints by remember {
+        mutableStateOf(game.listOfGameSets[currentGame])
+    }
+
+
+        // Spacer(modifier = Modifier.weight(1f))
         Card(modifier = Modifier
-            .wrapContentSize()
-            .weight(3f)
+            .padding(start = 8.dp, bottom = 24.dp, end = 8.dp, top = 4.dp)
+            .fillMaxSize(),
+            elevation = 8.dp
+
         ) {
-            Column(modifier = Modifier.padding(8.dp)) {
-                Row(modifier = Modifier) {
-                    Text(text = playedMatch.firstPlayer.toString(), Modifier.weight(1f))
-                    Text(text = " ${playedMatch.pointsPlayer(playedMatch.firstPlayer).toString()}",
-                        Modifier.weight(2f)
-                    )
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier
+                        .background(MaterialTheme.colors.secondary)
+                        .fillMaxWidth()
+                        .weight(1f),
+                horizontalArrangement = Arrangement.Center ) {
+                    Text(text = "Set $currentGame",
+                    fontSize = 36.sp)
+                }
+
+                PlayerCards(modifier = Modifier.weight(8f), value = game, points = gamePoints)
+                val buttonModifier = Modifier
+                    .weight(1f)
+                    .padding(top = 8.dp, bottom = 16.dp)
+                Row(Modifier.weight(1.1f)) {
+
+
+                    PlusOneButton(buttonModifier
+
+                    ) {
+
+                        gamePoints[0] = gamePoints[0] + 1
+                        println("click ${gamePoints[0]}")
+                    }
+                    PlusOneButton(buttonModifier
+
+                    ) {
+                        gamePoints[1] = gamePoints[1] + 1
+                        println("click ${gamePoints[1]}")
+
+                    }
 
                 }
-                Text(text = "vs")
-                Row() {
-                    Text(text = playedMatch.secondPlayer.toString(), Modifier.weight(1f))
-                    Text(text = " ${playedMatch.pointsPlayer(playedMatch.secondPlayer).toString()}",
-                        Modifier.weight(2f))
+
+
+                Row(modifier = Modifier
+                    .weight(0.5f)
+                    .background(MaterialTheme.colors.onPrimary)
+                    .fillMaxWidth()) {
+                    Text(text = "Edit Score",
+                        modifier = Modifier
+                            )
                 }
             }
         }
-        Spacer(modifier = Modifier.weight(1f))
+}
+
+/*private fun checkWinCondition(currentGame: Int, game: TableTennisMatch): Boolean {
+    if (game.listOfGameSets[currentGame][0] == 11)
+        println("Player one wins.")
+    else if (game.listOfGameSets[currentGame][1] == 11)
+        println("Player two wins.")
+    else
+        return false
+    return true
+
+}*/
+
+@Composable
+private fun PlayerCards(
+    modifier: Modifier,
+    value: TableTennisMatch,
+    points: Array<Int>,
+
+) {
+    Row(modifier){
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                    ,
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = value.firstPlayer,
+                fontSize = 36.sp,
+                modifier = Modifier.weight(2f)
+            )
+            Text(text = points[0].toString(),
+                fontSize = 64.sp,
+                color = Color.White,
+                modifier = Modifier.weight(2f)
+            )
+            Spacer(modifier = Modifier
+                .weight(2f)
+            ) // to align the name and numbers.
+
+
+
+        }
+        Column(modifier = Modifier
+            .weight(1f)
+            .background(MaterialTheme.colors.secondary),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Spacer(modifier = Modifier
+                .weight(2f)
+            )
+            Text(text = " ${points[1]}",
+                fontSize = 64.sp,
+                color = Color.White,
+                modifier = Modifier
+                    .weight(2f)
+            )
+            Text(text = value.secondPlayer,
+                fontSize = 36.sp,
+                modifier = Modifier
+                    .weight(2f)
+            )
+
+
+        }
+
     }
 }
 
+@Composable
+private fun PlusOneButton(modifier: Modifier, onClick: () -> Unit){
+Card(modifier.wrapContentSize()) {
+        Button(onClick = onClick,
+        ) {
+            Text(text = "+1",
+                fontSize = 24.sp
+            )
+
+        }
+    }
+}
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun StartKOSystem(value: List<String>, onValueChange: (String) -> Unit) {
+fun StartKOSystem(value: List<String>) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
 
         ) {
-        var challenger: String = ""
+        var challenger = ""
         value.forEachIndexed { index, contestant ->
             if (index.mod(2) == 0 && index+1 < value.size) {
                 challenger = contestant
@@ -230,41 +347,22 @@ fun StartKOSystem(value: List<String>, onValueChange: (String) -> Unit) {
 
 //TODO: how do I create a TextField so that i can edit a String List?
 @Composable
-fun editContestants(value: String, onValueChange: (String) -> Unit) {
+fun EditContestants(value: String, onValueChange: (String) -> Unit) {
     TextField(
         value = value,
         onValueChange = onValueChange,
-        label = {"separate by , "},)
+        label = {
+            @Suppress("UNUSED_EXPRESSION")
+            "separate by , "
+        },)
 }
 
 @Composable
-fun goBackButton(value: Int, onClick: () -> Unit){
+fun GoBackButton(onClick: () -> Unit){
     Button(
         onClick = onClick) {
         Text(text = "Go Back")
     }
-}
-
-@Composable
-fun enterData() {
-    var contestants by remember { mutableStateOf(TextFieldValue()) }
-    Column() {
-        TextField(value = contestants,
-            onValueChange = { contestants = it })
-    }
-}
-
-fun makeMatches(contestants: List<String>): List<String> {
-    val contestants = contestants.toMutableList()
-    var matches: List<String>
-    val random = java.util.Random()
-    var drawnContestants = emptyList<String>()
-    while (contestants.isNotEmpty()) {
-        val index = random.nextInt(contestants.size)
-        drawnContestants = drawnContestants + contestants[index]
-        contestants.removeAt(index)
-    }
-    return drawnContestants
 }
 
 
@@ -275,8 +373,8 @@ fun ShowContestant(randomListOfContestants: List<String>) {
         modifier = Modifier
             .padding(8.dp)
     ) {
-    randomListOfContestants.forEach() { contestant ->
-        Row() {
+    randomListOfContestants.forEach { contestant ->
+        Row {
             Spacer(modifier = Modifier.weight(1f))
             Card(
 
@@ -292,7 +390,7 @@ fun ShowContestant(randomListOfContestants: List<String>) {
                     ) {
                     //Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = ("$contestant"),
+                        text = (contestant),
                         //fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         modifier = Modifier
@@ -310,20 +408,20 @@ fun ShowContestant(randomListOfContestants: List<String>) {
 
 
 
+/* TODO: use in KO System
 @Composable
-fun showBox(protagonist: String, antagonist: String){
+fun ShowBox(firstPlayer: String, secondPlayer: String){
     Card(modifier = Modifier
         .background(Color.White)
         .width(240.dp)
         .border(2.dp, Color.Black)
         .padding(start = 16.dp, top = 8.dp, bottom = 16.dp, end = 16.dp)
 
-
     ){
-        Column() {
-            Text(text = protagonist, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Column {
+            Text(text = firstPlayer, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Text(text = "vs")
-            Text(text = antagonist, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text(text = secondPlayer, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         }
     }
-}
+}*/
