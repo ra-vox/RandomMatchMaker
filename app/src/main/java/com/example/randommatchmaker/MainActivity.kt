@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,18 +61,24 @@ fun RandomMatchMakerApp() {
 
     Scaffold(
         topBar = {
-
-            Row(modifier = Modifier
-                .background(color = MaterialTheme.colors.secondary)
-                .fillMaxWidth(),
+        Column(modifier = Modifier
+            .background(color = MaterialTheme.colors.secondary)
+            .fillMaxWidth(),) {
+            Row(modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                GoBackButton {
+                    state = 0
+                }
                 Text(text = "Table Tennis Tournament Tool",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(24.dp))
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    )
+
             }
+        }
+
         }
         ) {
         Column(
@@ -125,17 +132,17 @@ fun RandomMatchMakerApp() {
                             listOfContestants = showContestantList.split(", ").map { it.trim() } as MutableList<String>
                             randomListOfContestants = listOfContestants
                         })
-                    GoBackButton { state = 0 }
+
                 } // EDIT
                 2 -> {
                     StartKOSystem(
                         value = randomListOfContestants
                     ) // start KO System Game
-                    GoBackButton { state = 0 }
+
                 }
                 3 -> {
                     PlayMatch(firstPlayer = listOfContestants[0], secondPlayer = listOfContestants[2])
-                    GoBackButton { state = 0 }
+
                 }
                 4 -> TODO()
                 // Grouped Events Switch between different Groups show current games in front
@@ -359,9 +366,10 @@ fun EditContestants(value: String, onValueChange: (String) -> Unit) {
 
 @Composable
 fun GoBackButton(onClick: () -> Unit){
-    Button(
+    IconButton(
+        modifier = Modifier.padding(start = 0.dp),
         onClick = onClick) {
-        Text(text = "Go Back")
+        Icon(painter = painterResource(id = R.drawable.baseline_home_24), contentDescription = "Home Button")
     }
 }
 
